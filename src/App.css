@@ -412,9 +412,22 @@
   gap: 12px;
 }
 
+.simple-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.income-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .purpose-card,
 .choice-chip,
-.insight-card {
+.insight-card,
+.simple-card {
   cursor: pointer;
   border: 1px solid rgba(20, 50, 77, 0.12);
   background: #f8fbfe;
@@ -429,6 +442,7 @@
 .purpose-card:hover,
 .choice-chip:hover,
 .insight-card:hover,
+.simple-card:hover,
 .purpose-card.active,
 .choice-chip.active,
 .insight-card.active {
@@ -438,21 +452,33 @@
   box-shadow: 0 16px 28px rgba(12, 91, 143, 0.08);
 }
 
+.simple-card.active {
+  background: linear-gradient(135deg, rgba(20, 56, 90, 0.08), rgba(28, 164, 127, 0.14));
+}
+
 .purpose-card {
   padding: 16px;
   text-align: left;
   border-radius: 20px;
 }
 
+.simple-card {
+  padding: 16px;
+  text-align: left;
+  border-radius: 20px;
+}
+
 .purpose-card strong,
-.insight-card strong {
+.insight-card strong,
+.simple-card strong {
   display: block;
   margin-bottom: 6px;
   font-size: 1rem;
 }
 
 .purpose-card span,
-.insight-card p {
+.insight-card p,
+.simple-card span {
   display: block;
   color: #5d7892;
   line-height: 1.6;
@@ -466,6 +492,23 @@
   border-radius: 999px;
   background: rgba(20, 50, 77, 0.08);
   font-weight: 800;
+}
+
+.simple-card.income strong {
+  font-size: 1.05rem;
+}
+
+.advanced-block {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #f7fbfe;
+}
+
+.advanced-copy {
+  margin: 0;
+  color: #64809a;
+  line-height: 1.7;
 }
 
 .segmented-row {
@@ -540,6 +583,11 @@ select {
 
 .summary-caption {
   margin: 16px 0 0;
+}
+
+.summary-jump {
+  width: 100%;
+  margin-top: 18px;
 }
 
 .result-metrics {
@@ -815,6 +863,8 @@ select {
   .insight-grid,
   .field-row,
   .purpose-grid,
+  .simple-grid,
+  .income-grid,
   .fact-grid {
     grid-template-columns: 1fr;
   }

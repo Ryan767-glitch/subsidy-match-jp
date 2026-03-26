@@ -12,6 +12,14 @@ import {
 } from './data'
 
 type UrgencyMode = 'open-now' | 'include-upcoming'
+type OccupationKey =
+  | 'employee-sidebiz'
+  | 'freelancer'
+  | 'small-owner'
+  | 'business-owner'
+  | 'growth-ceo'
+  | 'successor'
+type IncomeKey = '<300' | '300-700' | '700-1200' | '1200+'
 
 type Answers = {
   purpose: PurposeKey
@@ -41,6 +49,67 @@ const defaultAnswers: Answers = {
   prefecture: '東京都',
   urgency: 'include-upcoming',
 }
+
+const defaultOccupation: OccupationKey = 'business-owner'
+const defaultIncome: IncomeKey = '300-700'
+
+const occupationOptions: Array<{
+  key: OccupationKey
+  label: string
+  caption: string
+  recommendedPurpose: PurposeKey
+  employeeBand: EmployeeBand
+}> = [
+  {
+    key: 'employee-sidebiz',
+    label: '会社員・副業検討',
+    caption: 'まずは創業準備や小さな販促から',
+    recommendedPurpose: 'startup',
+    employeeBand: 'startup',
+  },
+  {
+    key: 'freelancer',
+    label: '個人事業主・フリーランス',
+    caption: '販路開拓やIT導入を優先',
+    recommendedPurpose: 'marketing',
+    employeeBand: '1-5',
+  },
+  {
+    key: 'small-owner',
+    label: '小規模法人の代表',
+    caption: '広告・サイト改善・小規模投資向け',
+    recommendedPurpose: 'marketing',
+    employeeBand: '1-5',
+  },
+  {
+    key: 'business-owner',
+    label: '中小企業の経営者',
+    caption: 'DXや設備投資の候補を優先',
+    recommendedPurpose: 'dx-ai',
+    employeeBand: '6-20',
+  },
+  {
+    key: 'growth-ceo',
+    label: '成長企業の経営者',
+    caption: '大型投資や新規事業向け',
+    recommendedPurpose: 'labor-saving',
+    employeeBand: '21-50',
+  },
+  {
+    key: 'successor',
+    label: '事業承継を検討中',
+    caption: '承継・M&A・PMIの候補へ',
+    recommendedPurpose: 'inheritance',
+    employeeBand: '6-20',
+  },
+]
+
+const incomeOptions: Array<{ key: IncomeKey; label: string; caption: string }> = [
+  { key: '<300', label: '300万円未満', caption: 'まずは小さく試したい' },
+  { key: '300-700', label: '300〜700万円', caption: '小規模投資なら動ける' },
+  { key: '700-1200', label: '700〜1,200万円', caption: 'IT・広告・設備を検討' },
+  { key: '1200+', label: '1,200万円以上', caption: '中規模以上の投資も視野' },
+]
 
 const employeeLabels: Record<EmployeeBand, string> = {
   startup: '創業前〜創業1年以内',
@@ -159,7 +228,26 @@ function filterRegionalLinks(prefecture: string) {
   return regionalSupportLinks.filter((link) => link.prefectures.includes('全国') || link.prefectures.includes(prefecture))
 }
 
+function buildPreset(occupation: OccupationKey, income: IncomeKey): Pick<Answers, 'purpose' | 'employeeBand' | 'budgetBand'> {
+  const occupationConfig = occupationOptions.find((option) => option.key === occupation)
+
+  let budgetBand: BudgetBand = '100-500'
+
+  if (income === '<300') budgetBand = '<100'
+  if (income === '300-700') budgetBand = '100-500'
+  if (income === '700-1200') budgetBand = occupation === 'growth-ceo' ? '500-1000' : '100-500'
+  if (income === '1200+') budgetBand = occupation === 'growth-ceo' ? '1000+' : '500-1000'
+
+  return {
+    purpose: occupationConfig?.recommendedPurpose ?? 'dx-ai',
+    employeeBand: occupationConfig?.employeeBand ?? '6-20',
+    budgetBand,
+  }
+}
+
 function App() {
+  const [occupation, setOccupation] = useState(defaultOccupation)
+  const [incomeBand, setIncomeBand] = useState(defaultIncome)
   const [answers, setAnswers] = useState(defaultAnswers)
 
   const rankedGrants = grants
@@ -185,6 +273,17 @@ function App() {
     count: grants.filter((grant) => grant.purposeKeys.includes(option.key)).length,
   }))
   const activePurpose = purposeOptions.find((option) => option.key === answers.purpose)
+  const activeOccupation = occupationOptions.find((option) => option.key === occupation)
+
+  const applyPreset = (nextOccupation: OccupationKey, nextIncome: IncomeKey, includePurpose = true) => {
+    const preset = buildPreset(nextOccupation, nextIncome)
+    setAnswers((current) => ({
+      ...current,
+      employeeBand: preset.employeeBand,
+      budgetBand: preset.budgetBand,
+      purpose: includePurpose ? preset.purpose : current.purpose,
+    }))
+  }
 
   return (
     <div className="portal-shell">
@@ -294,15 +393,15 @@ function App() {
         <section className="search-panel" id="search-panel">
           <div className="panel-head">
             <div>
-              <p className="section-kicker">Quick Search</p>
-              <h2>補助金を探す</h2>
+              <p className="section-kicker">Easy Finder</p>
+              <h2>職業と年収から、まず候補を見る</h2>
             </div>
             <div className="search-tabs" aria-label="検索タブ">
               <button type="button" className="search-tab active">
-                補助金を探す
+                かんたん診断
               </button>
               <button type="button" className="search-tab" disabled>
-                専門家を探す
+                詳細検索
               </button>
             </div>
           </div>
@@ -310,7 +409,47 @@ function App() {
           <div className="search-layout">
             <div className="search-fields">
               <section className="field-block">
-                <label>利用目的を選択</label>
+                <label>Step 1: あなたの立場に近いものを選択</label>
+                <div className="simple-grid">
+                  {occupationOptions.map((option) => (
+                    <button
+                      type="button"
+                      key={option.key}
+                      className={occupation === option.key ? 'simple-card active' : 'simple-card'}
+                      onClick={() => {
+                        setOccupation(option.key)
+                        applyPreset(option.key, incomeBand, true)
+                      }}
+                    >
+                      <strong>{option.label}</strong>
+                      <span>{option.caption}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="field-block">
+                <label>Step 2: 年収の目安を選択</label>
+                <div className="income-grid">
+                  {incomeOptions.map((option) => (
+                    <button
+                      type="button"
+                      key={option.key}
+                      className={incomeBand === option.key ? 'simple-card active income' : 'simple-card income'}
+                      onClick={() => {
+                        setIncomeBand(option.key)
+                        applyPreset(occupation, option.key, false)
+                      }}
+                    >
+                      <strong>{option.label}</strong>
+                      <span>{option.caption}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="field-block">
+                <label>Step 3: 何に使いたいかを選択</label>
                 <div className="purpose-grid">
                   {purposeCounts.map((option) => (
                     <button
@@ -325,6 +464,13 @@ function App() {
                     </button>
                   ))}
                 </div>
+              </section>
+
+              <section className="field-block advanced-block">
+                <label>詳細条件を調整したい場合</label>
+                <p className="advanced-copy">
+                  かんたん診断で自動セットされた条件を、必要なら下で細かく変更できます。
+                </p>
               </section>
 
               <div className="field-row">
@@ -400,9 +546,11 @@ function App() {
             </div>
 
             <aside className="search-summary">
-              <p className="mini-label">選択中の条件</p>
-              <h3>{activePurpose?.label}</h3>
+              <p className="mini-label">かんたん診断の結果</p>
+              <h3>{activeOccupation?.label}</h3>
               <ul className="summary-list">
+                <li>年収目安: {incomeOptions.find((option) => option.key === incomeBand)?.label}</li>
+                <li>自動設定された用途: {activePurpose?.label}</li>
                 <li>従業員規模: {employeeLabels[answers.employeeBand]}</li>
                 <li>投資規模: {budgetLabels[answers.budgetBand]}</li>
                 <li>所在地: {answers.prefecture}</li>
@@ -416,8 +564,12 @@ function App() {
               </div>
 
               <p className="summary-caption">
-                補助額の大きさだけでなく、用途適合・受付状況・注意点を踏まえて上から並べています。
+                職業と年収は厳密な申請要件ではなく、候補を探しやすくするための入口です。最終判断は各カードの注意点と公式要領で確認してください。
               </p>
+
+              <a className="solid-action large summary-jump" href="#result-panel">
+                おすすめ候補へ移動
+              </a>
             </aside>
           </div>
         </section>
